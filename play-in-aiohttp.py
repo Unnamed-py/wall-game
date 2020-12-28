@@ -66,7 +66,7 @@ class GameRoom:
                         ]
                     })
                     data = await queue.get()
-                    reply = data['motions'], data['wall_dir']
+                    reply = data['motions'], core.Direction[data['wall_dir']]
 
                 elif event is core.Event.update_game_map:
                     wall_top = [''.join('1' if char else '0' for char in row)

@@ -3,8 +3,10 @@ var room_size;
 var current_player;
 var ws;
 var waiting_action;
-var reachable_points;
+var g_reachable_points;
 var chosen_pos;
+var current_pos;
+var DIRS = ['left', 'right', 'top', 'bottom'];
 
 function put_message(message) {
     var ele = document.createElement('div');
@@ -16,6 +18,64 @@ function put_message(message) {
 
 function set_status_text(text) {
     document.getElementById('status-display').innerText = text;
+}
+
+function clear_data_options(pos) {
+    var ele = game_board.children[pos[0]].children[pos[1]];
+    while (ele.children.length > 0) {
+        ele.removeChild(ele.children[0]);
+    }
+}
+
+function set_reachable_points(reachable_points) {
+    g_reachable_points = reachable_points;
+    for (var i = 0; i < reachable_points.length; i++) {
+        row = reachable_points[i][0];
+        col = reachable_points[i][1];
+        game_board.children[row].children[col].classList.add('cell-reachable');
+        console.log(game_board.children[row].children[col]);
+        game_board.children[row].children[col].addEventListener('click', function (e) {
+            var row, col;
+            if (chosen_pos) {
+                clear_data_options(chosen_pos);
+            }
+            row = parseInt(this.id.split('-')[1]);
+            col = parseInt(this.id.split('-')[2]);
+            chosen_pos = [row, col];
+            for (var i = 0; i < DIRS.length; i++) {
+                if (!this.classList.contains('cell-wall-' + DIRS[i])) {
+                    var ele = document.createElement('div');
+                    ele.classList.add('wall-dir-option');
+                    ele.classList.add('wall-dir-option-' + DIRS[i]);
+                    ele.addEventListener('click', function (e) {
+                        var dir, row, col;
+                        for (var i = 0; i < DIRS.length; i++) {
+                            if (this.classList.contains('wall-dir-option-' + DIRS[i])) {
+                                dir = DIRS[i];
+                                break;
+                            }
+                        }
+                        ws.send(JSON.stringify({
+                            motions: [chosen_pos[0] - current_pos[0], chosen_pos[1] - current_pos[1]],
+                            wall_dir: dir
+                        }));
+                        clear_data_options(chosen_pos);
+                        waiting_action = false;
+
+                    });
+                    this.appendChild(ele);
+                }
+            }
+        });
+    }
+}
+
+function clear_reachable_points() {
+    for (var i = 0; i < g_reachable_points.length; i++) {
+        row = g_reachable_points[i][0];
+        col = g_reachable_points[i][1];
+        game_board.children[row].children[col].classList.remove('cell-reachable');
+    }
 }
 
 function init_room(size) {
@@ -100,6 +160,9 @@ function init_room(size) {
                 col = data.players_info[i][1];
                 player = data.players_info[i][2];
                 game_board.children[row].children[col].innerText = player;
+                if (player == current_player) {
+                    current_pos = [row, col];
+                }
             }
         } else if (data.event == 'player_out') {
             if (data.player == current_player) {
@@ -111,26 +174,7 @@ function init_room(size) {
             game_board = document.getElementById('game-board');
             waiting_action = true;
             var row, col;
-            reachable_points = data.reachable_points;
-            for (var i = 0; i < reachable_points.length; i++) {
-                row = reachable_points[i][0];
-                col = reachable_points[i][1];
-                game_board.children[row].children[col].classList.add('cell-reachable');
-                game_board.children[row].children[col].onclick = function (e) {
-                    var row, col;
-                    game_board = document.getElementById('game-board');
-                    if (chosen_pos) {
-                        var last_chosen = game_board.children[chosen_pos[0]].children[chosen_pos[1]];
-                        while (last_chosen.children.length > 0) {
-                            last_chosen.removeChild(last_chosen.children[0]);
-                        }
-                    }
-                    row = parseInt(this.id.split('-')[1]);
-                    col = parseInt(this.id.split('-')[2]);
-                    chosen_pos = [row, col];
-
-                }
-            }
+            set_reachable_points(data.reachable_points);
         }
     }
 }

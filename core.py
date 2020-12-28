@@ -9,6 +9,8 @@ class Direction(Enum):
     right = 'r'
     up = 'u'
     down = 'd'
+    top = 'u'
+    bottom = 'd'
 
 
 class Event(Enum):
@@ -86,14 +88,16 @@ class WallGame:
 
     def get_reachable_points(self, player: Player):
         queue = deque(((player.row, player.col, 0),))
+        result_set = set()
         yield player.row, player.col
         while queue:
             row, col, step = queue.popleft()
+            result_set.add((row, col))
             yield row, col
             if step >= 3:
                 continue
             for r, c in self.reachable_points_near(row, col):
-                if self.find_player_by_pos(r, c) in (None, player):
+                if self.find_player_by_pos(r, c) in (None, player) and (r, c) not in result_set:
                     queue.append((r, c, step + 1))
 
     def reachable_points_near(self, row, col):
