@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+
+<head>
+    <title>新建房间</title>
+    <meta charset="utf-8">
+    {#
+    <!-- <script src="{{ static_url('new.js') }}"></script> --> #}
+</head>
+
+<body>
+    <form action="" method="POST">
+        <label>名称：<input name="name" type="text" value="{{ name }}" required></label>
+        <label>尺寸：<input name="size" type="number" value="{{ size }}" required></label>
+        {% if error_message %} <span>{{ error_message }}</span> {% endif %}
+        <input type="submit" value="提交">
+    </form>
+</body>
+
+</html>

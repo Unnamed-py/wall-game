@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+
+<head>
+    <title>困兽围斗</title>
+    <meta charset="utf-8">
+</head>
+
+<body>
+    <span>可用房间：</span>
+    {% if rooms %}
+    <ul>
+        {% for room in rooms %}
+        <li><a href="{{ room.id }}">{{ room.name }}</a></li>
+        {% endfor %}
+    </ul>
+    {% else %}
+    <span>无</span>
+    {% endif %}
+    <div>
+        <a href="new/">新建</a>
+    </div>
+
+</body>
+
+</html>

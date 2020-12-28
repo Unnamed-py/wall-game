@@ -1,0 +1,121 @@
+html {
+    width: 100%;
+    height: 100%;
+}
+
+body {
+    width: 100%;
+    height: 100%;
+}
+
+.message-display {
+    float: right;
+    margin: 1em;
+    border: black 1px solid;
+    width: 10em;
+    height: 90%;
+    overflow-y: scroll;
+}
+
+.message {
+    border-bottom: gray 1px solid;
+    margin: 0;
+    width: 100%;
+    height: fit-content;
+}
+
+.status-bar {
+    text-decoration-style: solid;
+    border-bottom: black 1px solid;
+    width: 100%;
+    height: fit-content;
+}
+
+.game-board {
+    display: block;
+    overflow: scroll;
+}
+
+.row {
+    display: flex;
+}
+
+.cell {
+    display: inline;
+    width: 1.2em;
+    height: 1.2em;
+    text-align: center;
+    font-size: 1em;
+    border: gray 2px solid;
+    position: relative;
+}
+
+div.cell-wall-top {
+    border-top: red 2px solid;
+}
+
+div.cell-wall-bottom {
+    border-bottom: red 2px solid;
+}
+
+div.cell-wall-left {
+    border-left: red 2px solid;
+}
+
+div.cell-wall-right {
+    border-right: red 2px solid;
+}
+
+div.cell-reachable {
+    background: green;
+}
+
+div.cell-reachable:hover {
+    background: greenyellow;
+}
+
+/* .wall-dir-chooser {
+    left: 0;
+    top: 0;
+    right: 100%;
+    bottom: 100%;
+    width: 100%;
+    height: 100%;
+} */
+
+.wall-dir-option {
+    background: rgba(0, 0, 255, 150);
+    position: absolute;
+}
+
+.wall-dir-option:hover {
+    background: rgba(0, 150, 255, 150);
+}
+
+.wall-dir-option-left {
+    margin-top: 0.3em;
+    left: 0;
+    width: 0.3em;
+    height: 0.6em;
+}
+
+.wall-dir-option-right {
+    margin-top: 0.3em;
+    right: 0;
+    width: 0.3em;
+    height: 0.6em;
+}
+
+.wall-dir-option-top {
+    margin-left: 0.3em;
+    top: 0;
+    width: 0.6em;
+    height: 0.3em;
+}
+
+.wall-dir-option-bottom {
+    margin-left: 0.3em;
+    bottom: 0;
+    width: 0.6em;
+    height: 0.3em;
+}
