@@ -20,11 +20,12 @@ function set_status_text(text) {
     document.getElementById('status-display').innerText = text;
 }
 
-function clear_data_options(pos) {
+function clear_chosen_status(pos) {
     var ele = game_board.children[pos[0]].children[pos[1]];
     while (ele.children.length > 0) {
         ele.removeChild(ele.children[0]);
     }
+    ele.classList.remove('cell-chosen');
 }
 
 function set_reachable_points(reachable_points) {
@@ -36,19 +37,33 @@ function set_reachable_points(reachable_points) {
         console.log(game_board.children[row].children[col]);
         game_board.children[row].children[col].addEventListener('click', function (e) {
             var row, col;
-            if (chosen_pos) {
-                clear_data_options(chosen_pos);
-            }
             row = parseInt(this.id.split('-')[1]);
             col = parseInt(this.id.split('-')[2]);
+            var flag = false;
+            for (var i = 0; i < g_reachable_points.length; i++) {
+                if (g_reachable_points[i][0] == row && g_reachable_points[i][1] == col) {
+                    flag = true;
+                    break;
+                }
+            }
+            if (!flag) {
+                return;
+            }
+            if (chosen_pos) {
+                if (chosen_pos[0] == row && chosen_pos[1] == col) {
+                    return;
+                }
+                clear_chosen_status(chosen_pos);
+            }
             chosen_pos = [row, col];
+            this.classList.add('cell-chosen');
             for (var i = 0; i < DIRS.length; i++) {
                 if (!this.classList.contains('cell-wall-' + DIRS[i])) {
                     var ele = document.createElement('div');
                     ele.classList.add('wall-dir-option');
                     ele.classList.add('wall-dir-option-' + DIRS[i]);
                     ele.addEventListener('click', function (e) {
-                        var dir, row, col;
+                        var dir;
                         for (var i = 0; i < DIRS.length; i++) {
                             if (this.classList.contains('wall-dir-option-' + DIRS[i])) {
                                 dir = DIRS[i];
@@ -59,7 +74,8 @@ function set_reachable_points(reachable_points) {
                             motions: [chosen_pos[0] - current_pos[0], chosen_pos[1] - current_pos[1]],
                             wall_dir: dir
                         }));
-                        clear_data_options(chosen_pos);
+                        clear_chosen_status(chosen_pos);
+                        clear_reachable_points();
                         waiting_action = false;
 
                     });

@@ -92,7 +92,8 @@ class GameRoom:
                     })) for sock in self.sock_players])
 
         except StopIteration as exc:
-            data = [[player.name, score] for player, score in exc.value]
+            data = [[player.symbol, score]
+                    for player, score in exc.value.items()]
             data.sort(key=lambda item: item[1], reverse=True)
             await asyncio.wait([asyncio.create_task(sock.send_json({
                 'event': 'game_over',
@@ -153,7 +154,7 @@ async def websocket_handler(request: web.Request):
     queue = asyncio.Queue()
     try:
         await room.add_player(room.players_without_sock[0], ws, queue)
-    except ValueError:
+    except (ValueError, IndexError):
         traceback.print_exc()
         await ws.send_json({
             'event': 'joined',

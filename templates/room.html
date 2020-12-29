@@ -4,6 +4,7 @@
 <head>
     <title>游戏房间 {{ room.name }}</title>
     <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <script src="/static/room.js"></script>
     <link rel="stylesheet" href="/static/room.css">
 </head>
@@ -12,12 +13,14 @@
     <div class="game-board" id="game-board">
 
     </div>
-    <div class="message-display" id="message-display">
+    <div class="message-wrapper">
         <div id="status-bar" class="status-bar">
             {{ room.name }}:
             <span id="status-display"></span>
         </div>
+        <div class="message-display" id="message-display">
 
+        </div>
     </div>
     <script>
         init_room(parseInt("{{ room.game.size }}"));

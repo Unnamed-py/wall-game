@@ -4,6 +4,7 @@
 <head>
     <title>困兽围斗</title>
     <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
 </head>
 
 <body>
@@ -11,7 +12,7 @@
     {% if rooms %}
     <ul>
         {% for room in rooms %}
-        <li><a href="{{ room.id }}">{{ room.name }}</a></li>
+        <li><a href="{{ room.id }}/">{{ room.name }}</a></li>
         {% endfor %}
     </ul>
     {% else %}

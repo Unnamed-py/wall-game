@@ -8,13 +8,18 @@ body {
     height: 100%;
 }
 
-.message-display {
+.message-wrapper {
     float: right;
     margin: 1em;
     border: black 1px solid;
     width: 10em;
     height: 90%;
     overflow-y: scroll;
+}
+
+.message-display {
+    width: 100%;
+    height: auto;
 }
 
 .message {
@@ -33,7 +38,9 @@ body {
 
 .game-board {
     display: block;
-    overflow: scroll;
+    overflow: auto;
+    width: fit-content;
+    height: fit-content;
 }
 
 .row {
@@ -74,18 +81,14 @@ div.cell-reachable:hover {
     background: greenyellow;
 }
 
-/* .wall-dir-chooser {
-    left: 0;
-    top: 0;
-    right: 100%;
-    bottom: 100%;
-    width: 100%;
-    height: 100%;
-} */
+#game-board div.cell-chosen {
+    background: darkgreen;
+}
 
 .wall-dir-option {
     background: rgba(0, 0, 255, 150);
     position: absolute;
+    z-index: 10;
 }
 
 .wall-dir-option:hover {
@@ -93,29 +96,29 @@ div.cell-reachable:hover {
 }
 
 .wall-dir-option-left {
-    margin-top: 0.3em;
-    left: 0;
-    width: 0.3em;
-    height: 0.6em;
+    margin-top: 0.15em;
+    left: -0.3em;
+    width: 0.45em;
+    height: 0.9em;
 }
 
 .wall-dir-option-right {
-    margin-top: 0.3em;
-    right: 0;
-    width: 0.3em;
-    height: 0.6em;
+    margin-top: 0.15em;
+    right: -0.3em;
+    width: 0.45em;
+    height: 0.9em;
 }
 
 .wall-dir-option-top {
-    margin-left: 0.3em;
-    top: 0;
-    width: 0.6em;
-    height: 0.3em;
+    margin-left: 0.15em;
+    top: -0.3em;
+    width: 0.9em;
+    height: 0.45em;
 }
 
 .wall-dir-option-bottom {
-    margin-left: 0.3em;
-    bottom: 0;
-    width: 0.6em;
-    height: 0.3em;
+    margin-left: 0.15em;
+    bottom: -0.3em;
+    width: 0.9em;
+    height: 0.45em;
 }

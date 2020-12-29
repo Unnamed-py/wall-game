@@ -4,16 +4,18 @@
 <head>
     <title>新建房间</title>
     <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     {#
     <!-- <script src="{{ static_url('new.js') }}"></script> --> #}
 </head>
 
 <body>
     <form action="" method="POST">
-        <label>名称：<input name="name" type="text" value="{{ name }}" required></label>
-        <label>尺寸：<input name="size" type="number" value="{{ size }}" required></label>
-        {% if error_message %} <span>{{ error_message }}</span> {% endif %}
-        <input type="submit" value="提交">
+        <div><label>名称：<input name="name" type="text" value="{{ name }}" required></label></div>
+        <div><label>尺寸：<input name="size" type="number" value="{{ size }}" required></label></div>
+
+        {% if error_message %} <div>{{ error_message }}</div> {% endif %}
+        <div><input type="submit" value="提交"></div>
     </form>
 </body>
 
