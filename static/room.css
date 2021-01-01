@@ -14,11 +14,18 @@ body {
     border: black 1px solid;
     width: 10em;
     height: 90%;
-    overflow-y: scroll;
+    position: relative;
+    /* overflow: auto; */
 }
 
 .message-display {
     width: 100%;
+    position: absolute;
+    top: 1.5em;
+    bottom: 0;
+    /* height: fit-content; */
+    overflow-y: scroll;
+    margin: 0;
     height: auto;
 }
 
@@ -33,11 +40,12 @@ body {
     text-decoration-style: solid;
     border-bottom: black 1px solid;
     width: 100%;
-    height: fit-content;
+    height: 1.5em;
 }
 
 .game-board {
     display: block;
+    float: left;
     overflow: auto;
     width: fit-content;
     height: fit-content;
@@ -55,6 +63,19 @@ body {
     font-size: 1em;
     border: gray 2px solid;
     position: relative;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -o-user-select: none;
+    user-select: none;
+}
+
+.player-display {
+    position: absolute;
+    z-index: 5;
+    width: 100%;
+    height: 100%;
+    left: 0;
+    top: 0;
 }
 
 div.cell-wall-top {

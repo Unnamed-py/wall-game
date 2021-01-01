@@ -17,6 +17,11 @@ class Event(Enum):
     update_game_map = 'update_game_map'
     ask_player_action = 'ask_player_action'
     player_out = 'player_out'
+    new_player = 'new_player'
+    game_start = 'game_start'
+    game_over = 'game_over'
+    joined = 'joined'
+    reconnected = 'reconnected'
 
 
 class Player:

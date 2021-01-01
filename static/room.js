@@ -1,7 +1,7 @@
 var ws;
 var room_size;
 var current_player;
-var ws;
+var ws_url;
 var waiting_action;
 var g_reachable_points;
 var chosen_pos;
@@ -14,6 +14,7 @@ function put_message(message) {
     ele.innerText = message
     var message_display = document.getElementById('message-display');
     message_display.appendChild(ele);
+    message_display.scrollTop = message_display.scrollHeight;
 }
 
 function set_status_text(text) {
@@ -22,8 +23,11 @@ function set_status_text(text) {
 
 function clear_chosen_status(pos) {
     var ele = game_board.children[pos[0]].children[pos[1]];
-    while (ele.children.length > 0) {
-        ele.removeChild(ele.children[0]);
+    var children = Array.from(ele.children);
+    for (var i = 0; i < children.length; i++) {
+        if (children[i].classList.contains('wall-dir-option')) {
+            ele.removeChild(children[i]);
+        }
     }
     ele.classList.remove('cell-chosen');
 }
@@ -34,7 +38,6 @@ function set_reachable_points(reachable_points) {
         row = reachable_points[i][0];
         col = reachable_points[i][1];
         game_board.children[row].children[col].classList.add('cell-reachable');
-        console.log(game_board.children[row].children[col]);
         game_board.children[row].children[col].addEventListener('click', function (e) {
             var row, col;
             row = parseInt(this.id.split('-')[1]);
@@ -70,13 +73,19 @@ function set_reachable_points(reachable_points) {
                                 break;
                             }
                         }
-                        ws.send(JSON.stringify({
-                            motions: [chosen_pos[0] - current_pos[0], chosen_pos[1] - current_pos[1]],
-                            wall_dir: dir
-                        }));
-                        clear_chosen_status(chosen_pos);
-                        clear_reachable_points();
-                        waiting_action = false;
+                        try {
+                            ws.send(JSON.stringify({
+                                motions: [chosen_pos[0] - current_pos[0], chosen_pos[1] - current_pos[1]],
+                                wall_dir: dir
+                            }));
+                            clear_chosen_status(chosen_pos);
+                            clear_reachable_points();
+                            waiting_action = false;
+                        } catch (exc) {
+                            if ((typeof exc == 'string' || exc instanceof String) && exc.toLowerCase().includes('websocket')) {
+                                setup_websocket(ws_url);
+                            }
+                        }
 
                     });
                     this.appendChild(ele);
@@ -94,35 +103,20 @@ function clear_reachable_points() {
     }
 }
 
-function init_room(size) {
-    game_board = document.getElementById('game-board');
-    room_size = size;
-    waiting_action = false;
-    for (var i = 0; i < size; i++) {
-        var row = document.createElement('div');
-        row.classList.add('row');
-        for (var j = 0; j < size; j++) {
-            var cell = document.createElement('div');
-            cell.classList.add('cell');
-            cell.id = 'cell-' + i + '-' + j;
-            row.appendChild(cell);
-        }
-        game_board.appendChild(row);
-    }
-    var ws_url = location.href.endsWith('/') ? location.href + 'ws/' : location.href + '/ws/';
-    ws_url = ws_url.replace('http://', 'ws://').replace('https://', 'wss://');
-    ws = new WebSocket(ws_url);
-    set_status_text('等待玩家');
+function setup_websocket(url, reconnect = false) {
+    ws = new WebSocket(url);
     ws.onmessage = function (e) {
         var data = JSON.parse(e.data);
-        if (data.event == 'joined') {
-            if (!data.successful) {
-                alert('加入房间失败！可能房间已满！');
-                location.href = document.referrer;
-            } else {
-                current_player = data.player;
-                put_message('您已加入房间，您的符号是：' + current_player);
-            }
+        if (data.event == 'error') {
+            alert(data.message);
+            location.href = document.referrer;
+        } else if (data.event == 'joined') {
+            current_player = data.player;
+            put_message('您已加入房间，您的符号是：' + current_player);
+        } else if (data.event == 'reconnected') {
+            current_player = data.player;
+            current_pos = data.pos;
+            set_status_text('游戏进行中');
         } else if (data.event == 'new_player') {
             put_message('符号为 ' + data.player + ' 的玩家已加入房间');
         } else if (data.event == 'game_start') {
@@ -151,9 +145,9 @@ function init_room(size) {
                     cell.classList.add(class_);
                 }
             }
-            for (var i = 0; i < size; i++) {
+            for (var i = 0; i < room_size; i++) {
                 var row = game_board.children[i];
-                for (var j = 0; j < size; j++) {
+                for (var j = 0; j < room_size; j++) {
                     var cell = row.children[j];
                     cell.innerText = '';
                     if (data.wall_top[i][j] == '1') {
@@ -175,7 +169,10 @@ function init_room(size) {
                 row = data.players_info[i][0];
                 col = data.players_info[i][1];
                 player = data.players_info[i][2];
-                game_board.children[row].children[col].innerText = player;
+                var ele = document.createElement('span');
+                ele.innerText = player;
+                ele.classList.add('player-display')
+                game_board.children[row].children[col].appendChild(ele);
                 if (player == current_player) {
                     current_pos = [row, col];
                 }
@@ -187,10 +184,49 @@ function init_room(size) {
                 put_message('玩家 ' + data.player + ' 已出局');
             }
         } else if (data.event == 'ask_player_action') {
+            if (!data.message) {
+                put_message('轮到您了！')
+            } else {
+                put_message(data.message + '，请重新操作')
+            }
             game_board = document.getElementById('game-board');
             waiting_action = true;
             var row, col;
             set_reachable_points(data.reachable_points);
         }
     }
+
+    ws.onerror = ws.onclose = function (e) {
+        set_status_text('连接断开');
+        put_message('连接已断开，正在尝试重连……');
+        setup_websocket(url, true);
+    }
+
+    if (reconnect) {
+        ws.onopen = function (e) {
+            set_status_text('游戏进行中');
+            put_message('重连成功！');
+        }
+    }
+}
+
+function init_room(size) {
+    game_board = document.getElementById('game-board');
+    room_size = size;
+    waiting_action = false;
+    for (var i = 0; i < room_size; i++) {
+        var row = document.createElement('div');
+        row.classList.add('row');
+        for (var j = 0; j < room_size; j++) {
+            var cell = document.createElement('div');
+            cell.classList.add('cell');
+            cell.id = 'cell-' + i + '-' + j;
+            row.appendChild(cell);
+        }
+        game_board.appendChild(row);
+    }
+    ws_url = location.href.endsWith('/') ? location.href + 'ws/' : location.href + '/ws/';
+    ws_url = ws_url.replace('http://', 'ws://').replace('https://', 'wss://');
+    setup_websocket(ws_url);
+    set_status_text('等待玩家');
 }
