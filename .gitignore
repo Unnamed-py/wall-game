@@ -2,3 +2,6 @@ __pycache__/*
 .idea/*
 trash/*
 .vscode/*
+db.sqlite3
+private_key.pem
+static/public_key.pem

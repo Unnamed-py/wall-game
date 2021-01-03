@@ -11,53 +11,51 @@ from core import Event, Player
 class PlayerManager:
     def __init__(self, players: List[Player]):
         self.players: List[Player] = players
-        self.players_sids: Dict[Player, str] = {}
-        self.sids_players: Dict[str, Player] = {}
-        # sid: session id
-        self.sids_sockets: Dict[str, WebSocketResponse] = {}
+        self.players_users: Dict[Player, str] = {}
+        self.users_players: Dict[str, Player] = {}
+        self.users_sockets: Dict[str, WebSocketResponse] = {}
         # WebSocket 接收信息必须在 request_handler task 中完成，故使用队列中转
-        self.sids_queues: Dict[str, Queue] = {}
+        self.users_queues: Dict[str, Queue] = {}
         self.unregistered_players: List[Player] = self.players.copy()
-        # sids_msgs_on_recovery: 重新连接后，需要再次发送的消息
-        self.sids_msgs_on_recovery: Dict[str, List[Dict]] = {}
+        # users_msgs_on_recovery: 重新连接后，需要再次发送的消息
+        self.users_msgs_on_recovery: Dict[str, List[Dict]] = {}
 
-    def register_player(self, sid: str, player: Player, ws: WebSocketResponse) -> Queue:
+    def register_player(self, user: str, player: Player, ws: WebSocketResponse) -> Queue:
         if player in self.unregistered_players:
-            self.players_sids[player] = sid
-            self.sids_players[sid] = player
+            self.players_users[player] = user
+            self.users_players[user] = player
             self.unregistered_players.remove(player)
             queue = Queue()
-            self.sids_queues[sid] = queue
-            self.sids_sockets[sid] = ws
-            self.sids_msgs_on_recovery[sid] = []
+            self.users_queues[user] = queue
+            self.users_sockets[user] = ws
+            self.users_msgs_on_recovery[user] = []
             return queue
         else:
             raise ValueError('Player registered')
 
-    async def reconnect(self, sid: str, ws: WebSocketResponse):
-        if not self.sids_sockets[sid].closed:
+    async def reconnect(self, user: str, ws: WebSocketResponse):
+        if not self.users_sockets[user].closed:
             raise ValueError(
                 'The connection is not lost yet, so cannot reconnect')
-        self.sids_sockets[sid] = ws
+        self.users_sockets[user] = ws
 
-    async def resend_messages(self, sid: str):
+    async def resend_messages(self, user: str):
         """
         重新连接后，重新发送未被回答的询问消息（例如，ask_player_action）
         """
-        for msg in self.sids_msgs_on_recovery[sid]:
-            await self.send_to(sid, msg)
-        # self.sids_msgs_on_recovery[sid].clear()
+        for msg in self.users_msgs_on_recovery[user]:
+            await self.send_to(user, msg)
 
     async def send_to(self, who: Union[Player, str], data: Dict):
         if isinstance(who, Player):
-            who = self.players_sids[who]
-        ws = self.sids_sockets[who]
+            who = self.players_users[who]
+        ws = self.users_sockets[who]
         await ws.send_json(data, dumps=json_dumps)
 
     async def receive_from(self, who: Player) -> Dict:
         if isinstance(who, Player):
-            who = self.players_sids[who]
-        queue = self.sids_queues[who]
+            who = self.players_users[who]
+        queue = self.users_queues[who]
         return await queue.get()
 
     async def send_to_everyone(self, data: Dict):
@@ -68,11 +66,11 @@ class PlayerManager:
         ])
 
     async def ask(self, player, data: Dict) -> Dict:
-        sid = self.players_sids[player]
-        self.sids_msgs_on_recovery[sid].append(data)
+        user = self.players_users[player]
+        self.users_msgs_on_recovery[user].append(data)
         await self.send_to(player, data)
         answer = await self.receive_from(player)
-        self.sids_msgs_on_recovery[sid].remove(data)
+        self.users_msgs_on_recovery[user].remove(data)
         return answer
 
 

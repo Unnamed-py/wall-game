@@ -22,6 +22,7 @@ class Event(Enum):
     game_over = 'game_over'
     joined = 'joined'
     reconnected = 'reconnected'
+    ask_restarting = 'ask_restarting'
 
 
 class Player:

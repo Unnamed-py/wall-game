@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="/static/css/base.css">
+    <link rel="stylesheet" href="/static/css/fonts.css">
+    <link rel="stylesheet" href="/static/css/nav_sidebar.css">
+    <link rel="stylesheet" href="/static/css/responsive.css">
+    {% block head %}
+        <title>困兽围斗</title>
+    {% endblock %}
+</head>
+
+<body>
+<div class="container">
+    <div id="header">
+        <div id="branding"><h1>困兽围斗</h1></div>
+        <div id="user-tools">
+            <a href="/">房间列表</a>
+            /
+            {% if session.get('user', '') %}
+                欢迎，{{ session['user'] }}
+                /
+                <a href="/edit-profile/">修改用户</a>
+                /
+                <a href="/logout/">登出</a>
+            {% else %}
+                <a href="/login/">登入</a>
+                /
+                <a href="/register/">注册</a>
+            {% endif %}
+        </div>
+    </div>
+    <div class="main" id="main">
+        <div class="content">
+            <div id="content">
+                {% block body %}
+                {% endblock %}
+            </div>
+        </div>
+    </div>
+
+</div>
+
+</body>
+
+</html>

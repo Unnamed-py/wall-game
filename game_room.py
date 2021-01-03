@@ -1,4 +1,5 @@
 import uuid
+import enum
 from asyncio import Queue, create_task
 from typing import *
 
@@ -6,6 +7,12 @@ from aiohttp.web import WebSocketResponse
 
 from core import Direction, Event, Player, WallGame
 from player_manager import PlayerManager
+
+
+class RoomStatus(enum.Enum):
+    waiting = 'waiting'
+    running = 'running'
+    finished = 'finished'
 
 
 class GameRoom:
@@ -21,7 +28,9 @@ class GameRoom:
         self.instances[self.id] = self
         self.game: WallGame = WallGame(size, players)
         self.manager = PlayerManager(self.game.players)
-
+        self.status: RoomStatus = RoomStatus.waiting
+        self.players_initial_poses: Dict[str, Tuple] = {player: (player.row, player.col)
+                                                        for player in self.manager.players}
         self.task = None
 
     async def register_player(self, sid: str, player: Player, ws: WebSocketResponse) -> Queue:
@@ -35,22 +44,28 @@ class GameRoom:
         })
 
         if len(self.manager.unregistered_players) == 0:
-            await self.manager.send_to_everyone({'event': Event.game_start})
-            self.task = create_task(self.game_loop())
+            await self.start_game()
         return queue
 
-    async def reconnect(self, sid: str, ws: WebSocketResponse):
-        await self.manager.reconnect(sid, ws)
-        player = self.manager.sids_players[sid]
-        await self.manager.send_to(sid, {
+    async def start_game(self):
+        await self.manager.send_to_everyone({'event': Event.game_start})
+        self.task = create_task(self.game_loop())
+
+    async def reconnect(self, user: str, ws: WebSocketResponse):
+        await self.manager.reconnect(user, ws)
+        player = self.manager.users_players[user]
+        await self.manager.send_to(user, {
             'event': Event.reconnected,
             'player': player,
-            'pos': [player.row, player.col]
+            'pos': [player.row, player.col],
+            'status': self.status.value
         })
-        await self.manager.send_to(sid, self.update_game_map_message())
-        await self.manager.resend_messages(sid)
+        if self.status == RoomStatus.running:
+            await self.manager.send_to(user, self.update_game_map_message())
+            await self.manager.resend_messages(user)
 
     async def game_loop(self):
+        self.status = RoomStatus.running
         loop = self.game.game_loop()
         reply = None
         try:
@@ -81,14 +96,29 @@ class GameRoom:
                     })
 
         except StopIteration as exc:
-            data = [[player.symbol, score]
+            self.status = RoomStatus.finished
+            data = [[f'{self.manager.players_users[player]}({player.symbol})', score]
                     for player, score in exc.value.items()]
             data.sort(key=lambda item: item[1], reverse=True)
             await self.manager.send_to_everyone({
                 'event': Event.game_over,
                 'result': data
             })
-            del self.instances[self.id]
+            for user, player in self.manager.users_players.items():
+                result = await self.manager.ask(player, {'event': Event.ask_restarting})
+                if not result.get('agree', False):
+                    await self.manager.send_to_everyone({
+                        'event': 'error',
+                        'message': f'由于{user}({player.symbol})拒绝重新开始游戏，游戏房间将被销毁',
+                    })
+                    del self.instances[self.id]
+                    break
+            else:
+                for player, (row, col) in self.players_initial_poses.items():
+                    player.row = row
+                    player.col = col
+                self.game.__init__(self.game.size, self.game.players)
+                await self.start_game()
 
     def update_game_map_message(self):
         wall_top = [''.join('1' if char else '0' for char in row)

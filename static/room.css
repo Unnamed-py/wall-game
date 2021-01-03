@@ -12,8 +12,8 @@ body {
     float: right;
     margin: 1em;
     border: black 1px solid;
-    width: 10em;
-    height: 90%;
+    width: 260px;
+    height: auto;
     position: relative;
     /* overflow: auto; */
 }
@@ -44,8 +44,7 @@ body {
 }
 
 .game-board {
-    display: block;
-    float: left;
+    display: inline;
     overflow: auto;
     width: fit-content;
     height: fit-content;
@@ -102,7 +101,7 @@ div.cell-reachable:hover {
     background: greenyellow;
 }
 
-#game-board div.cell-chosen {
+.game-board div.cell-chosen {
     background: darkgreen;
 }
 
@@ -143,3 +142,27 @@ div.cell-reachable:hover {
     width: 0.9em;
     height: 0.45em;
 }
+
+#content {
+    display: flex;
+}
+
+@media all and (max-width: 800px) {
+    /* 窄屏 */
+    #content {
+        display: block;
+    }
+
+    .game-board {
+        display: block;
+    }
+
+    .message-wrapper {
+        float: none;
+        margin-left: 0;
+        margin-right: 0;
+        width: auto;
+        height: 200px;
+    }
+}
+

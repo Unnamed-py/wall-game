@@ -1,0 +1,45 @@
+{% extends 'base.html' %}
+{% block head %}
+    <title>注册</title>
+    <link rel="stylesheet" href="/static/css/forms.css">
+    <script src="/static/check_password.js"></script>
+    <script src="/static/jsencrypt.min.js"></script>
+    <script src="/static/encrypt_password.js"></script>
+{% endblock %}
+{% block body %}
+    <h1>注册</h1>
+    <div id="content-main">
+        <form action="" method="POST" onsubmit="check_passwords_before_submit() && encrypt_password_before_submit()">
+            <fieldset class="module aligned">
+                <div class="form-row">
+                    <label class="required" for="input-username">用户名：</label>
+                    <input id="input-username" name="username" type="text" value="{{ username }}" maxlength="20"
+                           required>
+                </div>
+                <div class="form-row">
+                    <label class="required" for="input-symbol">符号：</label>
+                    <input id="input-symbol" name="symbol" type="text" value="{{ symbol }}" maxlength="2" required>
+                </div>
+                <div class="form-row">
+                    <label class="required" for="input-password">密码：</label>
+                    <input id="input-password" name="password_encrypted" type="password" required>
+                </div>
+                <div class="form-row">
+                    <label class="required" for="input-confirm-password">确认密码：</label>
+                    <input id="input-confirm-password" type="password" required>
+                </div>
+            </fieldset>
+
+            <ul class="errorlist">
+                {% if error_message %}
+                    <li>{{ error_message }}</li>
+                {% endif %}
+            </ul>
+
+            <div class="submit-row">
+                <input type="submit" value="提交" class="default">
+            </div>
+        </form>
+    </div>
+
+{% endblock %}

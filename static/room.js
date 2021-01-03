@@ -1,4 +1,5 @@
 var ws;
+var status = 'waiting';
 var room_size;
 var current_player;
 var ws_url;
@@ -17,8 +18,16 @@ function put_message(message) {
     message_display.scrollTop = message_display.scrollHeight;
 }
 
-function set_status_text(text) {
-    document.getElementById('status-display').innerText = text;
+function set_status(text) {
+    document.getElementById('status-display').innerText = {
+        waiting: '等待玩家',
+        running: '游戏进行中',
+        finished: '游戏结束',
+        disconnected: '连接断开'
+    }[text];
+    if (['running', 'waiting', 'finished'].includes(text)) {
+        status = text
+    }
 }
 
 function clear_chosen_status(pos) {
@@ -73,20 +82,13 @@ function set_reachable_points(reachable_points) {
                                 break;
                             }
                         }
-                        try {
-                            ws.send(JSON.stringify({
-                                motions: [chosen_pos[0] - current_pos[0], chosen_pos[1] - current_pos[1]],
-                                wall_dir: dir
-                            }));
-                            clear_chosen_status(chosen_pos);
-                            clear_reachable_points();
-                            waiting_action = false;
-                        } catch (exc) {
-                            if ((typeof exc == 'string' || exc instanceof String) && exc.toLowerCase().includes('websocket')) {
-                                setup_websocket(ws_url);
-                            }
-                        }
-
+                        ws.send(JSON.stringify({
+                            motions: [chosen_pos[0] - current_pos[0], chosen_pos[1] - current_pos[1]],
+                            wall_dir: dir
+                        }));
+                        clear_chosen_status(chosen_pos);
+                        clear_reachable_points();
+                        waiting_action = false;
                     });
                     this.appendChild(ele);
                 }
@@ -116,15 +118,25 @@ function setup_websocket(url, reconnect = false) {
         } else if (data.event == 'reconnected') {
             current_player = data.player;
             current_pos = data.pos;
-            set_status_text('游戏进行中');
+            set_status(data.status);
+            put_message('重连成功！');
         } else if (data.event == 'new_player') {
             put_message('符号为 ' + data.player + ' 的玩家已加入房间');
         } else if (data.event == 'game_start') {
             put_message('游戏开始！');
-            set_status_text('游戏进行中');
+            set_status('running');
+            game_board = document.getElementById('game-board');
+            for (var i = 0; i < room_size; i++) {
+                for (var j = 0; j < room_size; j++) {
+                    game_board.children[i].children[j].classList.remove('cell-wall-left');
+                    game_board.children[i].children[j].classList.remove('cell-wall-right');
+                    game_board.children[i].children[j].classList.remove('cell-wall-top');
+                    game_board.children[i].children[j].classList.remove('cell-wall-bottom');
+                }
+            }
         } else if (data.event == 'game_over') {
             put_message('游戏结束！');
-            set_status_text('游戏已结束');
+            set_status('finished');
             players_scores = data.result;
             var last_rank, last_score, output = [], rank;
             for (var i = 0; i < players_scores.length; i++) {
@@ -140,11 +152,13 @@ function setup_websocket(url, reconnect = false) {
             put_message('游戏排名：\n' + output.join('\n'));
         } else if (data.event == 'update_game_map') {
             var game_board = document.getElementById('game-board');
+
             function add_class(cell, class_) {
                 if (!cell.classList.contains(class_)) {
                     cell.classList.add(class_);
                 }
             }
+
             for (var i = 0; i < room_size; i++) {
                 var row = game_board.children[i];
                 for (var j = 0; j < room_size; j++) {
@@ -171,7 +185,10 @@ function setup_websocket(url, reconnect = false) {
                 player = data.players_info[i][2];
                 var ele = document.createElement('span');
                 ele.innerText = player;
-                ele.classList.add('player-display')
+                ele.classList.add('player-display');
+                ele.addEventListener('click', function () {
+                    this.parentNode.click();
+                })
                 game_board.children[row].children[col].appendChild(ele);
                 if (player == current_player) {
                     current_pos = [row, col];
@@ -193,24 +210,23 @@ function setup_websocket(url, reconnect = false) {
             waiting_action = true;
             var row, col;
             set_reachable_points(data.reachable_points);
+        } else if (data.event == 'ask_restarting') {
+            ws.send(JSON.stringify({'agree': confirm('重新开始游戏？')}));
         }
     }
 
     ws.onerror = ws.onclose = function (e) {
-        set_status_text('连接断开');
+        if (e.code == 1000) {
+            return;
+        }
+        set_status('disconnected');
         put_message('连接已断开，正在尝试重连……');
         setup_websocket(url, true);
-    }
-
-    if (reconnect) {
-        ws.onopen = function (e) {
-            set_status_text('游戏进行中');
-            put_message('重连成功！');
-        }
     }
 }
 
 function init_room(size) {
+    set_status('waiting');
     game_board = document.getElementById('game-board');
     room_size = size;
     waiting_action = false;
@@ -228,5 +244,5 @@ function init_room(size) {
     ws_url = location.href.endsWith('/') ? location.href + 'ws/' : location.href + '/ws/';
     ws_url = ws_url.replace('http://', 'ws://').replace('https://', 'wss://');
     setup_websocket(ws_url);
-    set_status_text('等待玩家');
+    set_status('等待玩家');
 }

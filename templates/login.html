@@ -1,24 +1,24 @@
 {% extends 'base.html' %}
 {% block head %}
-    <title>新建房间</title>
+    <title>登录</title>
     <link rel="stylesheet" href="/static/css/forms.css">
+    <script src="/static/jsencrypt.min.js"></script>
+    <script src="/static/encrypt_password.js"></script>
 {% endblock %}
 {% block body %}
-    <h1>新建房间</h1>
+    <h1>登录</h1>
     <div id="content-main">
-        <form action="" method="POST">
+        <form action="" method="POST" onsubmit="encrypt_password_before_submit()">
             <fieldset class="module aligned">
                 <div class="form-row">
-                    <label class="required" for="input-name">名称：</label>
-                    <input id="input-name" name="name" type="text" value="{{ name }}" required>
-
+                    <label class="required" for="input-username">用户名：</label>
+                    <input id="input-username" name="username" type="text" value="{{ username }}" maxlength="20" required>
                 </div>
                 <div class="form-row">
-                    <label class="required" for="input-size">尺寸：</label>
-                    <input id="input-size" name="size" type="number" value="{{ size }}" min="2" max="20" required>
+                    <label class="required" for="input-password">密码：</label>
+                    <input id="input-password" name="password_encrypted" type="password" required>
                 </div>
             </fieldset>
-
             {% if error_message %}
                 <ul class="errorlist">
                     <li>{{ error_message }}</li>
