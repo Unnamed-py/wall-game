@@ -5,7 +5,7 @@ import logging
 
 import jinja2
 from aiohttp import WSMsgType, web
-from aiohttp_session import Session, get_session, setup
+from aiohttp_session import Session, get_session, setup, new_session
 from aiohttp_session.cookie_storage import EncryptedCookieStorage
 from cryptography import fernet
 
@@ -157,10 +157,7 @@ class WallGameApp(web.Application):
 
         return web.Response()
 
-    @with_session
-    async def login_handler(self, request: web.Request, session: Session):
-        if session.get('user', ''):
-            raise web.HTTPFound(request.query.get('next', '/'))
+    async def login_handler(self, request: web.Request):
         if request.method == 'POST':
             post = await request.post()
             username = post['username']
@@ -168,8 +165,10 @@ class WallGameApp(web.Application):
             password = self.rsa.decrypt_by_private_key(password_encrypted)
             try:
                 user = self.storage.get_user(username)
+                session = await new_session(request)
                 if user.verify_password(password):
                     session['user'] = user.name
+
                 raise web.HTTPFound(request.query.get('next', '/'))
             except ValueError:
                 pass
@@ -177,18 +176,16 @@ class WallGameApp(web.Application):
         else:
             error_message = ''
             username = ''
-        return self.render('login.html', username=username, error_message=error_message, session=session)
+        return self.render('login.html', username=username, error_message=error_message, session={'user': ''})
 
-    @with_session
-    async def register_handler(self, request: web.Request, session: Session):
-        if session.get('user', ''):
-            raise web.HTTPFound(request.query.get('next', '/'))
+    async def register_handler(self, request: web.Request):
         if request.method == 'POST':
             post = await request.post()
             raw_password = self.rsa.decrypt_by_private_key(post['password_encrypted'])
             try:
                 user = User(post['username'], post['symbol'], raw_password=raw_password)
                 self.storage.new_user(user)
+                session = await new_session(request)
                 session['user'] = user.name
                 self.storage.save()
                 raise web.HTTPFound(request.query.get('next', '/'))
@@ -201,7 +198,7 @@ class WallGameApp(web.Application):
             symbol = ''
             error_message = ''
         return self.render('register.html', username=username, symbol=symbol,
-                           error_message=error_message, session=session)
+                           error_message=error_message, session={'user': ''})
 
     @with_session
     @login_required
