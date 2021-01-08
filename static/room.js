@@ -245,4 +245,19 @@ function init_room(size) {
     ws_url = ws_url.replace('http://', 'ws://').replace('https://', 'wss://');
     setup_websocket(ws_url);
     set_status('等待玩家');
+
+    function reset_game_board_size(ev) {
+        var boardSize, fontSize;
+        game_board = document.querySelector('#game-board');
+        if (window.innerWidth <= 800) {
+            boardSize = window.innerWidth - 30;
+        } else {
+            var messageWrapper = document.querySelector('.message-wrapper');
+            boardSize = window.innerWidth - messageWrapper.clientWidth - 50;
+        }
+        fontSize = Math.floor((boardSize / size - 4) / 1.2);
+        game_board.style.fontSize = fontSize + 'px';
+    }
+    reset_game_board_size();
+    window.onresize = reset_game_board_size;
 }
