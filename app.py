@@ -187,6 +187,7 @@ class WallGameApp(web.Application):
                 self.storage.new_user(user)
                 session = await new_session(request)
                 session['user'] = user.name
+                session
                 self.storage.save()
                 raise web.HTTPFound(request.query.get('next', '/'))
             except UserValidationError as exc:

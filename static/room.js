@@ -206,6 +206,7 @@ function setup_websocket(url, reconnect = false) {
             } else {
                 put_message(data.message + '，请重新操作')
             }
+            chosen_pos = undefined;
             game_board = document.getElementById('game-board');
             waiting_action = true;
             var row, col;
