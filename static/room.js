@@ -7,12 +7,13 @@ var waiting_action;
 var g_reachable_points;
 var chosen_pos;
 var current_pos;
+var decided_restarting;
 var DIRS = ['left', 'right', 'top', 'bottom'];
 
 function put_message(message) {
     var ele = document.createElement('div');
     ele.classList.add('message');
-    ele.innerText = message
+    ele.innerText = message;
     var message_display = document.getElementById('message-display');
     message_display.appendChild(ele);
     message_display.scrollTop = message_display.scrollHeight;
@@ -26,7 +27,7 @@ function set_status(text) {
         disconnected: '连接断开'
     }[text];
     if (['running', 'waiting', 'finished'].includes(text)) {
-        status = text
+        status = text;
     }
 }
 
@@ -105,7 +106,97 @@ function clear_reachable_points() {
     }
 }
 
-function setup_websocket(url, reconnect = false) {
+function open_dialog(title, content, buttons) {
+    var dialog = document.querySelector('.dialog');
+    document.querySelector('.dialog .dialog-title').innerText = title;
+    document.querySelector('.dialog .dialog-content').innerHTML = '';
+    if (typeof content == 'string') {
+        document.querySelector('.dialog .dialog-content').innerText = content;
+    } else {
+        document.querySelector('.dialog .dialog-content').appendChild(content);
+    }
+    var button_wrapper = document.querySelector('.dialog .dialog-button-wrapper');
+    while (button_wrapper.children.length > 0) {
+        button_wrapper.removeChild(button_wrapper.children[0]);
+    }
+    for (var i = 0; i < buttons.length; i++) {
+        var button = document.createElement('button');
+        button.classList.add('button');
+        if (i == 0) {
+            button.classList.add('default');
+        }
+        button.innerText = buttons[i].text;
+        button.addEventListener('click', buttons[i].callback);
+        button_wrapper.appendChild(button);
+    }
+    dialog.classList.add('dialog-open');
+}
+
+function close_dialog() {
+    document.querySelector('.dialog').classList.remove('dialog-open');
+}
+
+function show_game_over_dialog(players_scores) {
+    var node = document.createElement('div');
+    node.append("游戏已结束，结果如下：");
+
+    function ele(type, text) {
+        var td = document.createElement(type);
+        td.innerText = text;
+        return td;
+    }
+
+    var table = document.createElement('table');
+    var head_row = document.createElement('tr');
+
+    head_row.appendChild(ele('th', '排名'));
+    head_row.appendChild(ele('th', '用户'));
+    head_row.appendChild(ele('th', '得分'));
+    table.appendChild(head_row);
+
+    var rank, last_rank, last_score = Infinity;
+    for (var i = 0; i < players_scores.length; i++) {
+        var row = document.createElement('tr');
+        if (players_scores[i][1] == last_score) {
+            rank = last_rank;
+        } else {
+            rank = i + 1;
+        }
+        row.appendChild(ele('td', String(rank)));
+        row.appendChild(ele('td', players_scores[i][0]));
+        row.appendChild(ele('td', String(players_scores[i][1])));
+        table.appendChild(row);
+        last_rank = rank;
+        last_score = players_scores[i][1];
+    }
+    node.appendChild(table);
+
+    node.append('是否重新开始游戏？');
+
+    decided_restarting = false;
+    open_dialog('游戏结束', node, [
+        {
+            text: '是', callback: function () {
+                if (decided_restarting) { return; }
+                ws.send(JSON.stringify({ agree: true }));
+                disable_buttons();
+            }
+        },
+        {
+            text: '否', callback: function () {
+                if (decided_restarting) { return; }
+                ws.send(JSON.stringify({ agree: false }));
+                disable_buttons();
+                close_dialog();
+            }
+        }
+    ]);
+}
+
+function setup_websocket(url, reconnect) {
+    if (reconnect == undefined) {
+        reconnect = false;
+    }
     ws = new WebSocket(url);
     ws.onmessage = function (e) {
         var data = JSON.parse(e.data);
@@ -125,6 +216,7 @@ function setup_websocket(url, reconnect = false) {
         } else if (data.event == 'game_start') {
             put_message('游戏开始！');
             set_status('running');
+            close_dialog();
             game_board = document.getElementById('game-board');
             for (var i = 0; i < room_size; i++) {
                 for (var j = 0; j < room_size; j++) {
@@ -145,11 +237,12 @@ function setup_websocket(url, reconnect = false) {
                 } else {
                     rank = i + 1;
                 }
-                output.push(rank + '. ' + players_scores[i][0] + ' ' + players_scores[i][1]);
+                output.push((rank == 1 ? '[Winner]1' : rank) + '. ' + players_scores[i][0] + ' ' + players_scores[i][1]);
                 last_rank = rank;
                 last_score = players_scores[i][1];
             }
             put_message('游戏排名：\n' + output.join('\n'));
+            show_game_over_dialog(players_scores)
         } else if (data.event == 'update_game_map') {
             var game_board = document.getElementById('game-board');
 
@@ -209,10 +302,7 @@ function setup_websocket(url, reconnect = false) {
             chosen_pos = undefined;
             game_board = document.getElementById('game-board');
             waiting_action = true;
-            var row, col;
             set_reachable_points(data.reachable_points);
-        } else if (data.event == 'ask_restarting') {
-            ws.send(JSON.stringify({'agree': confirm('重新开始游戏？')}));
         }
     }
 
@@ -245,20 +335,31 @@ function init_room(size) {
     ws_url = location.href.endsWith('/') ? location.href + 'ws/' : location.href + '/ws/';
     ws_url = ws_url.replace('http://', 'ws://').replace('https://', 'wss://');
     setup_websocket(ws_url);
-    set_status('等待玩家');
+    set_status('waiting');
 
     function reset_game_board_size(ev) {
         var boardSize, fontSize;
         game_board = document.querySelector('#game-board');
+        var header = document.querySelector('#header');
         if (window.innerWidth <= 800) {
             boardSize = window.innerWidth - 30;
         } else {
             var messageWrapper = document.querySelector('.message-wrapper');
             boardSize = window.innerWidth - messageWrapper.clientWidth - 50;
         }
+        boardSize = Math.min(boardSize, window.innerHeight - header.clientHeight - 50)
         fontSize = Math.floor((boardSize / size - 4) / 1.2);
         game_board.style.fontSize = fontSize + 'px';
     }
+
     reset_game_board_size();
     window.onresize = reset_game_board_size;
+}
+
+
+function disable_buttons() {
+    var eles = document.querySelectorAll('.button');
+    for (var i = 0; i < eles.length; i++) {
+        eles[i].setAttribute('disabled', 'true');
+    }
 }

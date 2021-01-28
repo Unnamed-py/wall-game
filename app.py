@@ -43,7 +43,8 @@ def login_required(request_handler):
     @functools.wraps(request_handler)
     async def wrapper(self, request: web.Request, session: Session):
         if not session.get('user', ''):
-            raise web.HTTPFound(request.app.router['login'].url_for().with_query({'next': request.url.raw_path_qs}))
+            raise web.HTTPFound(request.app.router['login'].url_for(
+            ).with_query({'next': request.url.raw_path_qs}))
         return await request_handler(self, request, session)
 
     return wrapper
@@ -57,15 +58,23 @@ class WallGameApp(web.Application):
             web.get('/', self.main_handler, name='list_rooms'),
             web.route('*', '/new/', self.new_handler, name='create_room'),
             web.route('*', '/login/', self.login_handler, name='login'),
-            web.route('*', '/register/', self.register_handler, name='register'),
-            web.route('*', '/edit-profile/', self.edit_profile_handler, name='edit_profile'),
+            web.route('*', '/register/',
+                      self.register_handler, name='register'),
+            web.route('*', '/edit-profile/',
+                      self.edit_profile_handler, name='edit_profile'),
             web.get('/logout/', self.logout_handler, name='logout'),
             web.get('/{room}/', self.room_handler, name='room_page'),
             web.get('/{room}/ws/', self.websocket_handler, name='room_ws'),
         ])
 
-        fernet_key = fernet.Fernet.generate_key()
-        secret_key = base64.urlsafe_b64decode(fernet_key)
+        try:
+            with open('secret_key', 'rb') as fp:
+                secret_key = fp.read()
+        except OSError:
+            fernet_key = fernet.Fernet.generate_key()
+            secret_key = base64.urlsafe_b64decode(fernet_key)
+            with open('secret_key', 'wb') as fp:
+                fp.write(secret_key)
         setup(self, EncryptedCookieStorage(secret_key))
 
         self.env = jinja2.Environment(loader=jinja2.FileSystemLoader('./templates'),
@@ -84,7 +93,12 @@ class WallGameApp(web.Application):
     async def main_handler(self, request: web.Request, session: Session):
         available_rooms = {room for room in GameRoom.instances.values()
                            if room.manager.unregistered_players}
-        return self.render('index.html', rooms=available_rooms, session=session)
+        if user := session.get('user'):
+            joined_rooms = {room for room in GameRoom.instances.values()
+                            if user in room.manager.users_players}
+        else:
+            joined_rooms = {}
+        return self.render('index.html', rooms=available_rooms, joined_rooms=joined_rooms, session=session)
 
     @with_session
     @login_required
@@ -134,6 +148,7 @@ class WallGameApp(web.Application):
         except KeyError:
             await ws.send_json({'event': 'error', 'message': '房间不存在或游戏已结束'})
             await ws.close()
+            return
         if user not in room.manager.users_sockets:
             try:
                 player = room.manager.unregistered_players[0]
@@ -155,7 +170,7 @@ class WallGameApp(web.Application):
             if msg.type == WSMsgType.TEXT:
                 await queue.put(json.loads(msg.data))
 
-        return web.Response()
+        return
 
     async def login_handler(self, request: web.Request):
         if request.method == 'POST':
@@ -181,9 +196,11 @@ class WallGameApp(web.Application):
     async def register_handler(self, request: web.Request):
         if request.method == 'POST':
             post = await request.post()
-            raw_password = self.rsa.decrypt_by_private_key(post['password_encrypted'])
+            raw_password = self.rsa.decrypt_by_private_key(
+                post['password_encrypted'])
             try:
-                user = User(post['username'], post['symbol'], raw_password=raw_password)
+                user = User(post['username'], post['symbol'],
+                            raw_password=raw_password)
                 self.storage.new_user(user)
                 session = await new_session(request)
                 session['user'] = user.name
@@ -206,11 +223,13 @@ class WallGameApp(web.Application):
     async def edit_profile_handler(self, request: web.Request, session: Session):
         if request.method == 'POST':
             post = await request.post()
-            raw_old_password = self.rsa.decrypt_by_private_key(post['old_password_encrypted'])
+            raw_old_password = self.rsa.decrypt_by_private_key(
+                post['old_password_encrypted'])
             user = self.storage.get_user(session['user'])
             if user.verify_password(raw_old_password):
                 if post['password_encrypted']:
-                    raw_new_password = self.rsa.decrypt_by_private_key(post['password_encrypted'])
+                    raw_new_password = self.rsa.decrypt_by_private_key(
+                        post['password_encrypted'])
                     user.set_password(raw_new_password)
                 user.symbol = post['symbol']
                 user.name = post['username']

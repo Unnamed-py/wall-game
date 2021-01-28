@@ -1,3 +1,4 @@
+import asyncio
 import json
 from asyncio import Queue
 from asyncio import wait as wait_coros
@@ -65,6 +66,15 @@ class PlayerManager:
             if player not in self.unregistered_players
         ])
 
+    async def receive_from_any(self, users):
+        while True:
+            for user in users:
+                try:
+                    return user, self.users_queues[user].get_nowait()
+                except asyncio.QueueEmpty:
+                    pass
+            await asyncio.sleep(0.02)
+
     async def ask(self, player, data: Dict) -> Dict:
         user = self.players_users[player]
         self.users_msgs_on_recovery[user].append(data)
@@ -72,6 +82,16 @@ class PlayerManager:
         answer = await self.receive_from(player)
         self.users_msgs_on_recovery[user].remove(data)
         return answer
+
+    async def ask_everyone(self, data: Dict) -> Dict:
+        for user in self.users_players:
+            self.users_msgs_on_recovery[user].append(data)
+        await self.send_to_everyone(data)
+        users_queues = self.users_queues.copy()
+        while users_queues:
+            user, data = await self.receive_from_any(users_queues.keys())
+            del users_queues[user]
+            yield user, data
 
 
 class CustomJsonEncoder(json.JSONEncoder):
