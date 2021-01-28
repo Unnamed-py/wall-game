@@ -23,6 +23,7 @@ class Event(Enum):
     joined = 'joined'
     reconnected = 'reconnected'
     ask_restarting = 'ask_restarting'
+    agreed_restarting = 'agreed_restarting'
 
 
 class Player:

@@ -60,9 +60,9 @@ class GameRoom:
             'pos': [player.row, player.col],
             'status': self.status.value
         })
-        if self.status == RoomStatus.running:
+        if self.status != RoomStatus.finished:
             await self.manager.send_to(user, self.update_game_map_message())
-            await self.manager.resend_messages(user)
+        await self.manager.resend_messages(user)
 
     async def game_loop(self):
         self.status = RoomStatus.running
@@ -100,25 +100,23 @@ class GameRoom:
             data = [[f'{self.manager.players_users[player]}({player.symbol})', score]
                     for player, score in exc.value.items()]
             data.sort(key=lambda item: item[1], reverse=True)
-            await self.manager.send_to_everyone({
-                'event': Event.game_over,
-                'result': data
-            })
-            for user, player in self.manager.users_players.items():
-                result = await self.manager.ask(player, {'event': Event.ask_restarting})
-                if not result.get('agree', False):
-                    await self.manager.send_to_everyone({
-                        'event': 'error',
-                        'message': f'由于{user}({player.symbol})拒绝重新开始游戏，游戏房间将被销毁',
-                    })
+            # 发送游戏结果并询问是否重新开始
+            async for user, reply in self.manager.ask_everyone({
+                    'event': Event.game_over,
+                    'result': data}):
+                if reply.get('agree'):
+                    await self.manager.send_to_everyone({'event': Event.agreed_restarting, 'user': user})
+                else:
+                    await self.manager.send_to_everyone({'event': 'error', 'message': f'由于{user}拒绝重新开始游戏，游戏房间将被销毁'})
                     del self.instances[self.id]
-                    break
-            else:
-                for player, (row, col) in self.players_initial_poses.items():
-                    player.row = row
-                    player.col = col
-                self.game.__init__(self.game.size, self.game.players)
-                await self.start_game()
+                    return
+
+            # 重新开始
+            for player, (row, col) in self.players_initial_poses.items():
+                player.row = row
+                player.col = col
+            self.game.__init__(self.game.size, self.game.players)
+            await self.start_game()
 
     def update_game_map_message(self):
         wall_top = [''.join('1' if char else '0' for char in row)

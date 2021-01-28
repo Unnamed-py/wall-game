@@ -2,25 +2,38 @@
 
 
 {% block head %}
-    <title>游戏房间 {{ room.name }}</title>
-    <script src="/static/room.js"></script>
-    <link rel="stylesheet" href="/static/room.css">
+<title>游戏房间 {{ room.name }}</title>
+<script src="/static/room.js"></script>
+<link rel="stylesheet" href="/static/css/forms.css">
+<link rel="stylesheet" href="/static/room.css">
 {% endblock %}
 
 {% block body %}
-    <div class="game-board" id="game-board">
+<div class="game-board" id="game-board">
+
+</div>
+<div class="message-wrapper">
+    <div id="status-bar" class="status-bar">
+        {{ room.name }}:
+        <span id="status-display"></span>
+    </div>
+    <div class="message-display" id="message-display">
 
     </div>
-    <div class="message-wrapper">
-        <div id="status-bar" class="status-bar">
-            {{ room.name }}:
-            <span id="status-display"></span>
+</div>
+<div class="dialog">
+    <div class="dialog-title">
+        Dialog
+    </div>
+    <div class="dialog-body">
+        <div class="dialog-content">
+            Content...
         </div>
-        <div class="message-display" id="message-display">
-
+        <div class="dialog-button-wrapper">
         </div>
     </div>
-    <script>
-        init_room(parseInt("{{ room.game.size }}"));
-    </script>
+</div>
+<script>
+    init_room(parseInt("{{ room.game.size }}"));
+</script>
 {% endblock %}
