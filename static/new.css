@@ -1,0 +1,50 @@
+html {
+    width: 100%;
+    height: 100%;
+}
+
+body {
+    width: 100%;
+    height: 100%;
+}
+
+.game-board {
+    display: grid;
+    width: fit-content;
+    height: fit-content;
+}
+
+.row {
+    display: flex;
+}
+
+.cell {
+    display: inline;
+    width: 1.2em;
+    height: 1.2em;
+    text-align: center;
+    font-size: 1em;
+    border: gray 2px solid;
+    position: relative;
+    background: white;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -o-user-select: none;
+    user-select: none;
+}
+
+div.cell:hover {
+    background: greenyellow;
+}
+
+div.cell.chosen {
+    background: yellow;
+}
+
+div.cell.chosen:hover {
+    background: orange;
+}
+
+.board-wrapper {
+    display: block;
+}

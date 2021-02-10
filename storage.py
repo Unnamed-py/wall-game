@@ -19,7 +19,8 @@ class Storage:
 
     def get_user(self, name) -> 'User':
         try:
-            data = self.conn.execute('SELECT name, symbol, password FROM User WHERE name=?', (name,)).fetchall()
+            data = self.conn.execute(
+                'SELECT name, symbol, password FROM User WHERE name=?', (name,)).fetchall()
             return User(*data[0])
         except IndexError:
             raise UserValidationError("用户不存在")
@@ -29,9 +30,9 @@ class Storage:
             self.conn.execute('UPDATE User SET name=?, symbol=?, password=? WHERE name=?',
                               (user.name, user.symbol, user.password, user.name))
         except sqlite3.IntegrityError as exc:
-            if 'symbol' in exc:
+            if 'symbol' in exc.args[0]:
                 raise UserValidationError("符号已被其他用户占用")
-            elif 'name' in exc:
+            elif 'name' in exc.args[0]:
                 raise UserValidationError("用户名已被其他用户占用")
 
     def new_user(self, user: 'User'):
@@ -102,7 +103,8 @@ class User:
 
     def verify_password(self, raw_password):
         ha = hashlib.new(self.pwd_method, self.pwd_salt)
-        ha.update(raw_password.encode() if isinstance(raw_password, str) else raw_password)
+        ha.update(raw_password.encode() if isinstance(
+            raw_password, str) else raw_password)
         return ha.digest() == self.pwd_digest
 
     def set_password(self, raw_password, method='sha256'):
@@ -110,7 +112,8 @@ class User:
             raise UserValidationError('密码长度必须在闭区间4到60之间')
         salt = bytes(secrets.choice(self.salt_choices) for _ in range(4))
         ha = hashlib.new(method, salt)
-        ha.update(raw_password.encode() if isinstance(raw_password, str) else raw_password)
+        ha.update(raw_password.encode() if isinstance(
+            raw_password, str) else raw_password)
         self.pwd_method = method
         self.pwd_salt = salt
         self.pwd_digest = ha.digest()

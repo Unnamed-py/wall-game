@@ -2,6 +2,8 @@
 {% block head %}
     <title>新建房间</title>
     <link rel="stylesheet" href="/static/css/forms.css">
+    <link rel="stylesheet" href="/static/new.css">
+    <script src="/static/new.js"></script>
 {% endblock %}
 {% block body %}
     <h1>新建房间</h1>
@@ -17,6 +19,14 @@
                     <label class="required" for="input-size">尺寸：</label>
                     <input id="input-size" name="size" type="number" value="{{ size }}" min="2" max="20" required>
                 </div>
+                <div class="form-row">
+                    <label class="required">玩家：</label>
+                    <div class="board-wrapper">
+                        <div class="game-board" id="game-board"></div>
+                    </div>
+                    <input name="player-positions" type="hidden" value="{{ player_positions }}">
+                </div>
+
             </fieldset>
 
             {% if error_message %}

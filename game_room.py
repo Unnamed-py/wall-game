@@ -22,15 +22,18 @@ class GameRoom:
     def players(self):
         return self.manager.players
 
-    def __init__(self, size, name, players=None) -> None:
+    def __init__(self, size, name, player_positions) -> None:
         self.id: str = str(uuid.uuid1())
         self.name: str = name
         self.instances[self.id] = self
+        players = [Player(str(i), row, col) for i, (row, col) in enumerate(player_positions, 1)]
         self.game: WallGame = WallGame(size, players)
         self.manager = PlayerManager(self.game.players)
         self.status: RoomStatus = RoomStatus.waiting
         self.players_initial_poses: Dict[str, Tuple] = {player: (player.row, player.col)
                                                         for player in self.manager.players}
+        if len(self.players_initial_poses) != len(self.manager.players):
+            raise ValueError('duplicated player_positions')
         self.task = None
 
     async def register_player(self, sid: str, player: Player, ws: WebSocketResponse) -> Queue:

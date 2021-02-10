@@ -5,7 +5,7 @@ import logging
 
 import jinja2
 from aiohttp import WSMsgType, web
-from aiohttp_session import Session, get_session, setup, new_session
+from aiohttp_session import Session, get_session, new_session, setup
 from aiohttp_session.cookie_storage import EncryptedCookieStorage
 from cryptography import fernet
 
@@ -107,22 +107,26 @@ class WallGameApp(web.Application):
             post_data = await request.post()
             name = post_data.get('name')
             size = post_data.get('size')
+            player_positions = post_data.get('player-positions')
             try:
                 size = int(size)
-                if 2 <= size <= 20 and name.strip():
-                    room = GameRoom(size, name)
+                positions = json.loads(player_positions)
+                if 2 <= size <= 20 and name.strip() and len(positions) >= 2:
+                    room = GameRoom(size, name, positions)
                 else:
                     raise ValueError()
             except ValueError:
-                error_message = '名称 必须非空，2 <= 尺寸 <= 20'
+                error_message = '名称 必须非空，2 <= 尺寸 <= 20，玩家数量 >= 2'
             else:
                 raise web.HTTPFound(f'/{room.id}/')
         else:
             name = ''
             size = 7
             error_message = ''
+            player_positions = ''
         return self.render('new.html', name=name, size=size,
-                           error_message=error_message, session=session)
+                           error_message=error_message, session=session,
+                           player_positions=player_positions)
 
     @auto_404
     @with_session

@@ -106,36 +106,6 @@ function clear_reachable_points() {
     }
 }
 
-function open_dialog(title, content, buttons) {
-    var dialog = document.querySelector('.dialog');
-    document.querySelector('.dialog .dialog-title').innerText = title;
-    document.querySelector('.dialog .dialog-content').innerHTML = '';
-    if (typeof content == 'string') {
-        document.querySelector('.dialog .dialog-content').innerText = content;
-    } else {
-        document.querySelector('.dialog .dialog-content').appendChild(content);
-    }
-    var button_wrapper = document.querySelector('.dialog .dialog-button-wrapper');
-    while (button_wrapper.children.length > 0) {
-        button_wrapper.removeChild(button_wrapper.children[0]);
-    }
-    for (var i = 0; i < buttons.length; i++) {
-        var button = document.createElement('button');
-        button.classList.add('button');
-        if (i == 0) {
-            button.classList.add('default');
-        }
-        button.innerText = buttons[i].text;
-        button.addEventListener('click', buttons[i].callback);
-        button_wrapper.appendChild(button);
-    }
-    dialog.classList.add('dialog-open');
-}
-
-function close_dialog() {
-    document.querySelector('.dialog').classList.remove('dialog-open');
-}
-
 function show_game_over_dialog(players_scores) {
     var node = document.createElement('div');
     node.append("游戏已结束，结果如下：");
@@ -337,7 +307,7 @@ function init_room(size) {
     setup_websocket(ws_url);
     set_status('waiting');
 
-    function reset_game_board_size(ev) {
+    function resize_game_board(ev) {
         var boardSize, fontSize;
         game_board = document.querySelector('#game-board');
         var header = document.querySelector('#header');
@@ -352,8 +322,8 @@ function init_room(size) {
         game_board.style.fontSize = fontSize + 'px';
     }
 
-    reset_game_board_size();
-    window.onresize = reset_game_board_size;
+    resize_game_board();
+    window.onresize = resize_game_board;
 }
 
 
